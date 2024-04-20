@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bitcoin Chart</title>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"
+      integrity="sha512-vc58qvvBdrDR4etbxMdlTt4GBQk1qjvyORR2nrsPsFPyrs+/u5c3+1Ct6upOgdZoIl7eq6k3a1UPDSNAQi/32A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </head>
+  <body style="text-align: center">
+    <svg width="600" height="400"></svg>
+    <script>
+      async function fetchData() {
+        const response = await fetch(
+          "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=30"
+        );
+        const data = await response.json();
+        return data.prices.map(([timestamp, price]) => ({
+          date: new Date(timestamp),
+          price,
+        }));
+      }
+
+      async function drawChart() {
+        const data = await fetchData();
+
+        const margin = { top: 20, right: 30, bottom: 30, left: 50 };
+        const width = 900 - margin.left - margin.right;
+        const height = 400 - margin.top - margin.bottom;
+
+        const svg = d3
+          .select("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+        const x = d3
+          .scaleUtc()
+          .domain(d3.extent(data, (d) => d.date))
+          .range([0, width]);
+
+        const y = d3
+          .scaleLinear()
+          .domain([0, d3.max(data, (d) => d.price)])
+          .nice()
+          .range([height, 0]);
+
+        svg
+          .append("g")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x));
+
+        svg.append("g").call(d3.axisLeft(y));
+
+        svg
+          .append("path")
+          .datum(data)
+          .attr("fill", "none")
+          .attr("stroke", "steelblue")
+          .attr("stroke-width", 1.5)
+          .attr(
+            "d",
+            d3
+              .line()
+              .x((d) => x(d.date))
+              .y((d) => y(d.price))
+          );
+      }
+
+      drawChart();
+    </script>
+  </body>
+</html>
